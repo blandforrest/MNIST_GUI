@@ -1,0 +1,15 @@
+﻿<Window x:Class="MNIST_GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MNIST_GUI"
+        mc:Ignorable="d"
+        Title="MNIST Viewer" Height="361.286" Width="326.558" ResizeMode="NoResize">
+    <Grid Margin="0,0,4.4,2.4">
+        <Image x:Name="imageBox1" HorizontalAlignment="Left" Height="211" Margin="56,40,0,0" VerticalAlignment="Top" Width="211"/>
+        <Button x:Name="nextButton" Content="Next" HorizontalAlignment="Left" Margin="192,292,0,0" VerticalAlignment="Top" Width="75" Click="NextButton_Click"/>
+        <Button x:Name="prevButton" Content="Previous" HorizontalAlignment="Left" Margin="56,292,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="0.327,0.596" Click="PrevButton_Click"/>
+
+    </Grid>
+</Window>
