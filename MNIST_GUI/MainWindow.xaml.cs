@@ -26,102 +26,127 @@ namespace MNIST_GUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        int index = 0;
+        uint numImages_i = 0, numRows_i = 0, numCols_i = 0;
+
+        ImageLabelByte[] imageListByte;
+        ImageLabeluInt[] ImageListuInt;
+        Bitmap[] bitmapArr;
+
         public MainWindow()
         {
             InitializeComponent();
-            storeImageByteArr();
+            storeImageByteClass();
+            classToBitmap();
             loadImage(index);
         }
 
-        Bitmap [] bitmapArr;
-        int index = 0;
 
-        //Convert a bitmap to an image source for imageBox 
-        public BitmapImage Convert(Bitmap src)
-        {
-            MemoryStream ms = new MemoryStream();
-            ((System.Drawing.Bitmap)src).Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-            BitmapImage image = new BitmapImage();
-            image.BeginInit();
-            ms.Seek(0, SeekOrigin.Begin);
-            image.StreamSource = ms;
-            image.EndInit();
-            return image;
-        }
-
+        #region WPF Form
         //Load the first image into the imageBox
         void loadImage(int index)
         {
-            if(index >= 0)
-                imageBox1.Source = Convert(bitmapArr[index]);
+            if (index >= 0)
+                labelBox.Content = imageListByte[index].label;
+            imageBox1.Source = Convert(bitmapArr[index]);
         }
 
-
-        //Print a 2D uint Array
-        static void print2DArray(uint[][] x)
+        //Go to previous image
+        private void PrevButton_Click(object sender, RoutedEventArgs e)
         {
-            for (int i = 0; i < 28; i++)
-            {
-                for (int j = 0; j < 28; j++)
-                {
-                    Console.Write(x[i][j] + " ");
-                }
-                Console.WriteLine();
-            }
+            if (index > 0)
+                loadImage(--index);
         }
 
-        //Reverse the order of a byte array
-        byte[] revArr(byte [] x)
+        //Go to next image
+        private void NextButton_Click(object sender, RoutedEventArgs e)
         {
-            Array.Reverse(x);
-            return x;
+            loadImage(++index);
         }
+        #endregion
 
-        void storeLabelByteArr()
+        #region Image & Label
+
+        //Converts a pixel byte array to a bitmap image
+        void storeImageByteClass()
         {
-
-
-
-        }
-
-
-        void storeImageByteArr()
-        {
-            byte [] byteImageArr = System.IO.File.ReadAllBytes("../../train-images.idx3-ubyte");
+            byte[] byteImageArr = System.IO.File.ReadAllBytes("../../train-images.idx3-ubyte");
             byte[] byteLabelArr = System.IO.File.ReadAllBytes("../../train-labels.idx1-ubyte");
 
             //Read header from file
-            uint magic_i = BitConverter.ToUInt32(revArr(byteImageArr.Take(4).ToArray()), 0);
-            uint numImages_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(4).Take(4).ToArray())), 0);
-            uint numRows_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(8).Take(4).ToArray())), 0);
-            uint numCols_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(12).Take(4).ToArray())), 0);
+            numImages_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(4).Take(4).ToArray())), 0);
+            numRows_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(8).Take(4).ToArray())), 0);
+            numCols_i = BitConverter.ToUInt32((revArr(byteImageArr.Skip(12).Take(4).ToArray())), 0);
 
             uint byteImageIndex = 16;
             uint byteLabelIndex = 8;
 
-            bitmapArr = new Bitmap[numImages_i];
+            imageListByte = new ImageLabelByte[numImages_i];
 
             byte[][] byteGrid = new byte[numImages_i][];
-            for(int i = 0; i < numImages_i; i++)
+            for (int i = 0; i < numImages_i; i++)
             {
                 byte[] image = new byte[numRows_i * numCols_i];
-                for(int j = 0; j < (numRows_i*numCols_i); j++)
+                for (int j = 0; j < (numRows_i * numCols_i); j++)
                 {
-                    image[j] = byteImageArr[byteImageIndex];
-                    byteImageIndex++;
+                    image[j] = byteImageArr[byteImageIndex++];
                 }
-                byteGrid[i] = image;
-
-                bitmapArr[i] = pixelArrToBitmap((int)numCols_i, (int)numRows_i, image);
+                imageListByte[i] = new ImageLabelByte(byteLabelArr[byteLabelIndex++], image);
             }
             Console.WriteLine("Store Byte Operation Completed...");
+            // Save to file --> bmp.Save(@"Images\img_" + i + ".bmp", ImageFormat.Bmp); // Debug.WriteLine($""); <-- useful too! //Parallel.For()
         }
-        // Save to file --> bmp.Save(@"Images\img_" + i + ".bmp", ImageFormat.Bmp);
 
+        //Reads the image into a 3D array of images
+        void storeImageUintClass()
+        {
+            byte[] byteArr = System.IO.File.ReadAllBytes("../../train-images.idx3-ubyte");
+            byte[] byteLabelArr = System.IO.File.ReadAllBytes("../../train-labels.idx1-ubyte");
 
+            //Read header from file
+            numImages_i = BitConverter.ToUInt32((revArr(byteArr.Skip(4).Take(4).ToArray())), 0);
+            numRows_i = BitConverter.ToUInt32((revArr(byteArr.Skip(8).Take(4).ToArray())), 0);
+            numCols_i = BitConverter.ToUInt32((revArr(byteArr.Skip(12).Take(4).ToArray())), 0);
 
-        //Converts a pixel byte array to a bitmap image
-        Bitmap pixelArrToBitmap(int width, int height, byte [] byteArr)
+            //uint[][][] imageArr = new uint[numImages_i][][];
+            uint byteImageIndex = 16;
+            uint byteLabelIndex = 8;
+
+            ImageListuInt = new ImageLabeluInt[numImages_i];
+
+            //For each numRows x numCols image, store into 3D array
+            for (int i = 0; i < numImages_i; i++)
+            {
+                uint[][] image = new uint[numRows_i][];
+
+                //Fill (numRows * numCols) array and store in imageArr
+                for (int j = 0; j < numRows_i; j++)
+                {
+                    uint[] row = new uint[numCols_i];
+
+                    for (int k = 0; k < numCols_i; k++)
+                    {
+                        row[k] = byteArr[byteImageIndex++];
+                    }
+                    image[j] = row;
+                }
+                ImageListuInt[i] = new ImageLabeluInt(byteLabelArr[byteLabelIndex++], image);
+            }
+        }
+
+        //Stores the images of the byte array as a bitmap
+        void classToBitmap()
+        {
+            bitmapArr = new Bitmap[numImages_i];
+
+            for (int i = 0; i < numImages_i; i++)
+            {
+                bitmapArr[i] = pixelArrToBitmap((int)numRows_i, (int)numCols_i, imageListByte[i].image);
+            }
+        }
+
+        //Converts a pixel array to a bitmap format
+        Bitmap pixelArrToBitmap(int width, int height, byte[] byteArr)
         {
             Bitmap bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
 
@@ -145,61 +170,45 @@ namespace MNIST_GUI
             bmp.UnlockBits(bmpData);
 
 
-            return bmp; 
+            return bmp;
         }
 
-        //Reads the image into a 3D array of imagesd
-        void newalgo()
+        //Convert a bitmap to an image source for imageBox 
+        public BitmapImage Convert(Bitmap src)
         {
-            byte[] byteArr = System.IO.File.ReadAllBytes("../../train-images.idx3-ubyte");
-
-            //Read header from file
-            uint magic_i = BitConverter.ToUInt32(revArr(byteArr.Take(4).ToArray()), 0);
-            uint numImages_i = BitConverter.ToUInt32((revArr(byteArr.Skip(4).Take(4).ToArray())), 0);
-            uint numRows_i = BitConverter.ToUInt32((revArr(byteArr.Skip(8).Take(4).ToArray())), 0);
-            uint numCols_i = BitConverter.ToUInt32((revArr(byteArr.Skip(12).Take(4).ToArray())), 0);
-            // Debug.WriteLine($""); <-- useful too!
-            Console.WriteLine($"Magic Number: {magic_i}\nNumber of Images: {numImages_i}\nImage Size: {numRows_i} x {numCols_i}\n ");
-            
-            uint[][][] imageArr = new uint[numImages_i][][];
-            uint byteIndex = 16;
-
-            //Parallel.For()
-            //For each numRows x numCols image, store into 3D array
-            for (int i = 0; i < numImages_i; i++)
-            {
-                uint [][] image = new uint [numRows_i][];
-
-                //Fill (numRows * numCols) array and store in imageArr
-                for (int j = 0; j < numRows_i; j++)
-                {
-                    uint[] row = new uint[numCols_i];
-
-                    for (int k = 0; k < numCols_i; k++)
-                    {
-                        row[k] = byteArr[byteIndex];
-                        byteIndex++;
-                    }
-
-                    image[j] = row;
-                }
-
-                imageArr[i] = image;
-                print2DArray(imageArr[i]);
-            }
-
+            MemoryStream ms = new MemoryStream();
+            ((System.Drawing.Bitmap)src).Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+            BitmapImage image = new BitmapImage();
+            image.BeginInit();
+            ms.Seek(0, SeekOrigin.Begin);
+            image.StreamSource = ms;
+            image.EndInit();
+            return image;
         }
 
-
-        private void PrevButton_Click(object sender, RoutedEventArgs e)
+        //Reverse the order of a byte array
+        byte[] revArr(byte[] x)
         {
-            if(index > 0)
-                loadImage(--index);
+            Array.Reverse(x);
+            return x;
         }
+        #endregion
 
-        private void NextButton_Click(object sender, RoutedEventArgs e)
-        {
-            loadImage(++index);
-        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }
